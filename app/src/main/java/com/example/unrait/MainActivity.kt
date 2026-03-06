@@ -244,17 +244,89 @@ fun TopSection(onOpenDrawer: () -> Unit) {
 @Composable
 fun BottomNavSection() {
     var selectedItem by remember { mutableStateOf(1) }
+    var showModal by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp, top = 8.dp).height(70.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
-    ) {
+    )
+
+    {
         AnimatedNavItem(icon = Icons.Filled.Home, isSelected = selectedItem == 0) { selectedItem = 0 }
-        AnimatedNavItem(icon = Icons.Filled.Search, isSelected = selectedItem == 1, isCenter = true) { selectedItem = 1 }
+        AnimatedNavItem(icon = Icons.Filled.Search, isSelected = selectedItem == 1, isCenter = true){
+            selectedItem = 1
+            showModal = true
+        }
         AnimatedNavItem(icon = Icons.Filled.DirectionsBus, isSelected = selectedItem == 2) { selectedItem = 2 }
     }
+    if (showModal) {
+        SearchModal(
+            onClose = { showModal = false }
+        )
+    }
 }
+
+@Composable
+fun SearchModal(onClose: () -> Unit) {
+
+    var origen by remember { mutableStateOf("Mi ubicación") }
+    var destino by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onClose,
+        confirmButton = {},
+        text = {
+
+            Column {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    Text(
+                        text = "¿A dónde vamos?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = origen,
+                    onValueChange = { origen = it },
+                    label = { Text("Punto de partida") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = destino,
+                    onValueChange = { destino = it },
+                    label = { Text("Destino") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = { },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Buscar")
+                }
+            }
+        }
+    )
+}
+
 
 @Composable
 fun AnimatedNavItem(
