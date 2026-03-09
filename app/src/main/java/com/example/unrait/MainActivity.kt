@@ -380,7 +380,7 @@ fun DrawerContent(alCerrarDrawer: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Divider(color = Color.LightGray, thickness = 1.dp)
 
-        // Botón de Iniciar Sesión
+        // Botón de Iniciar Sesi
         Row(
             modifier = Modifier
                 .fillMaxWidth()
