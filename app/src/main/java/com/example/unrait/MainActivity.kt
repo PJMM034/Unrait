@@ -10,9 +10,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -152,7 +154,16 @@ fun LoginScreen() {
             label = { Text("Correo electrónico") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = OrangePrimary,
+                unfocusedBorderColor = Color.Gray,
+                focusedLabelColor = OrangePrimary,
+                unfocusedLabelColor = Color.Gray,
+                cursorColor = OrangePrimary,
+                focusedTextColor = NavyBlue,
+                unfocusedTextColor = NavyBlue
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -165,15 +176,23 @@ fun LoginScreen() {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = OrangePrimary,
+                unfocusedBorderColor = Color.Gray,
+                focusedLabelColor = OrangePrimary,
+                unfocusedLabelColor = Color.Gray,
+                cursorColor = OrangePrimary,
+                focusedTextColor = NavyBlue,
+                unfocusedTextColor = NavyBlue
+            )
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón de iniciar sesión - AHORA TE LLEVA A MAIN
+        // Botón de iniciar sesión
         Button(
             onClick = {
-                // Al hacer clic, cambia a la pantalla principal
                 mostrarPantalla.value = "main"
             },
             modifier = Modifier
@@ -218,6 +237,38 @@ fun LoginScreen() {
     }
 }
 
+// FUNCIÓN AUXILIAR PARA COLORES DE CAMPOS
+@Composable
+fun getCampoColors(habilitado: Boolean, datosValidados: Boolean): TextFieldColors {
+    return OutlinedTextFieldDefaults.colors(
+        // Colores para estado deshabilitado (cuando ya se validó)
+        disabledTextColor = if (!habilitado && datosValidados) NavyBlue else Color.Transparent,
+        disabledBorderColor = if (!habilitado && datosValidados) Color.Gray else Color.Transparent,
+        disabledLabelColor = if (!habilitado && datosValidados) Color.Gray else Color.Transparent,
+        disabledPlaceholderColor = if (!habilitado && datosValidados) Color.Gray else Color.Transparent,
+        disabledLeadingIconColor = if (!habilitado && datosValidados) Color.Gray else Color.Transparent,
+        disabledTrailingIconColor = if (!habilitado && datosValidados) Color.Gray else Color.Transparent,
+
+        // Colores para estado habilitado (siempre definidos)
+        focusedTextColor = NavyBlue,
+        unfocusedTextColor = NavyBlue,
+        focusedBorderColor = OrangePrimary,
+        unfocusedBorderColor = Color.Gray,
+        focusedLabelColor = OrangePrimary,
+        unfocusedLabelColor = Color.Gray,
+        cursorColor = OrangePrimary,
+
+        // Colores de error
+        errorBorderColor = Color.Red,
+        errorLabelColor = Color.Red,
+        errorTextColor = NavyBlue,
+
+        // Colores de soporte
+        focusedSupportingTextColor = Color.Gray,
+        unfocusedSupportingTextColor = Color.Gray
+    )
+}
+
 @Composable
 fun RegistroScreen() {
     // Variables para guardar lo que escribe el usuario
@@ -226,13 +277,35 @@ fun RegistroScreen() {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
+    // NUEVOS CAMPOS PARA RENAPO
+    var curp by remember { mutableStateOf("") }
+    var fechaNacimiento by remember { mutableStateOf("") }
+    var apellidoPaterno by remember { mutableStateOf("") }
+    var apellidoMaterno by remember { mutableStateOf("") }
+    var sexo by remember { mutableStateOf("") }
+    var entidadNacimiento by remember { mutableStateOf("") }
+
+    // Estados para la validación
+    var isValidando by remember { mutableStateOf(false) }
+    var errorValidacion by remember { mutableStateOf<String?>(null) }
+    var datosValidados by remember { mutableStateOf(false) }
+
+    // Estado para el menú de sexo
+    var sexoMenuExpandido by remember { mutableStateOf(false) }
+
+    // Variable para controlar si los campos están habilitados
+    val camposHabilitados = !datosValidados
+
+    // Scroll para que quepa todo
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
+            .verticalScroll(scrollState)
             .background(Color.White),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Título
         Text(
@@ -253,68 +326,360 @@ fun RegistroScreen() {
             fontWeight = FontWeight.Medium
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Campo de nombre
+        // ===== SECCIÓN DE CURP =====
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF0F0F0)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Validación con CURP",
+                    fontWeight = FontWeight.Bold,
+                    color = NavyBlue,
+                    fontSize = 16.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Campo CURP
+                OutlinedTextField(
+                    value = curp,
+                    onValueChange = {
+                        curp = it.uppercase().filter { char -> char.isLetterOrDigit() }
+                        if (curp.length > 18) curp = curp.substring(0, 18)
+                        datosValidados = false
+                    },
+                    label = { Text("CURP") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    isError = curp.isNotEmpty() && curp.length != 18,
+                    supportingText = {
+                        if (curp.isNotEmpty() && curp.length != 18) {
+                            Text(
+                                text = "La CURP debe tener 18 caracteres",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = OrangePrimary,
+                        unfocusedLabelColor = Color.Gray,
+                        cursorColor = OrangePrimary,
+                        focusedTextColor = NavyBlue,
+                        unfocusedTextColor = NavyBlue,
+                        errorBorderColor = Color.Red,
+                        errorLabelColor = Color.Red
+                    ),
+                    trailingIcon = {
+                        if (curp.length == 18 && !datosValidados) {
+                            IconButton(
+                                onClick = {
+                                    // Aquí validarías con la API
+                                    isValidando = true
+                                    // Simulación de validación
+                                    isValidando = false
+                                    datosValidados = true
+                                    errorValidacion = null
+
+                                    // Auto-llenar campos con datos de ejemplo
+                                    nombre = "JUAN"
+                                    apellidoPaterno = "PEREZ"
+                                    apellidoMaterno = "GOMEZ"
+                                    fechaNacimiento = "15/05/1990"
+                                    sexo = "Hombre"
+                                    entidadNacimiento = "CIUDAD DE MÉXICO"
+                                }
+                            ) {
+                                if (isValidando) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp,
+                                        color = OrangePrimary
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.Verified,
+                                        contentDescription = "Validar",
+                                        tint = OrangePrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+
+                // Mensaje de error si falla validación
+                errorValidacion?.let {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ===== CAMPOS DE DATOS PERSONALES =====
+        // Nombre
         OutlinedTextField(
             value = nombre,
-            onValueChange = { nombre = it },
-            label = { Text("Nombre completo") },
+            onValueChange = { nombre = it.uppercase() },
+            label = { Text("Nombre(s)") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            enabled = camposHabilitados,
+            colors = getCampoColors(camposHabilitados, datosValidados)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Apellido Paterno
+        OutlinedTextField(
+            value = apellidoPaterno,
+            onValueChange = { apellidoPaterno = it.uppercase() },
+            label = { Text("Apellido Paterno") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = camposHabilitados,
+            colors = getCampoColors(camposHabilitados, datosValidados)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Apellido Materno
+        OutlinedTextField(
+            value = apellidoMaterno,
+            onValueChange = { apellidoMaterno = it.uppercase() },
+            label = { Text("Apellido Materno") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = camposHabilitados,
+            colors = getCampoColors(camposHabilitados, datosValidados)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Fecha de Nacimiento
+        OutlinedTextField(
+            value = fechaNacimiento,
+            onValueChange = {
+                // Formato automático DD/MM/AAAA
+                var formatted = it.replace("/", "")
+                if (formatted.length > 2) {
+                    formatted = formatted.substring(0, 2) + "/" + formatted.substring(2)
+                }
+                if (formatted.length > 5) {
+                    formatted = formatted.substring(0, 5) + "/" + formatted.substring(5)
+                }
+                if (formatted.length > 10) formatted = formatted.substring(0, 10)
+                fechaNacimiento = formatted
+            },
+            label = { Text("Fecha de Nacimiento (DD/MM/AAAA)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = camposHabilitados,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = getCampoColors(camposHabilitados, datosValidados)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Sexo con opciones - VERSIÓN ULTRA SIMPLE
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Sexo",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+            )
+
+            Box {
+                OutlinedTextField(
+                    value = sexo,
+                    onValueChange = {},
+                    readOnly = true,
+                    placeholder = { Text("Selecciona una opción") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { sexoMenuExpandido = !sexoMenuExpandido },
+                    enabled = camposHabilitados,
+                    colors = getCampoColors(camposHabilitados, datosValidados),
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = OrangePrimary
+                        )
+                    }
+                )
+
+                DropdownMenu(
+                    expanded = sexoMenuExpandido,
+                    onDismissRequest = { sexoMenuExpandido = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Hombre") },
+                        onClick = {
+                            sexo = "Hombre"
+                            sexoMenuExpandido = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Mujer") },
+                        onClick = {
+                            sexo = "Mujer"
+                            sexoMenuExpandido = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Entidad de Nacimiento
+        OutlinedTextField(
+            value = entidadNacimiento,
+            onValueChange = { entidadNacimiento = it.uppercase() },
+            label = { Text("Entidad de Nacimiento") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = camposHabilitados,
+            colors = getCampoColors(camposHabilitados, datosValidados)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Campo de correo
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
+        // ===== DATOS DE ACCESO =====
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF0F0F0)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Datos de Acceso",
+                    fontWeight = FontWeight.Bold,
+                    color = NavyBlue,
+                    fontSize = 16.sp
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-        // Campo de contraseña
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
+                // Correo electrónico
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Correo electrónico") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = OrangePrimary,
+                        unfocusedLabelColor = Color.Gray,
+                        cursorColor = OrangePrimary,
+                        focusedTextColor = NavyBlue,
+                        unfocusedTextColor = NavyBlue
+                    )
+                )
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-        // Campo de confirmar contraseña
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirmar contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
+                // Contraseña
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = OrangePrimary,
+                        unfocusedLabelColor = Color.Gray,
+                        cursorColor = OrangePrimary,
+                        focusedTextColor = NavyBlue,
+                        unfocusedTextColor = NavyBlue
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Confirmar contraseña
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirmar contraseña") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    isError = confirmPassword.isNotEmpty() && password != confirmPassword,
+                    supportingText = {
+                        if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+                            Text(
+                                text = "Las contraseñas no coinciden",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = OrangePrimary,
+                        unfocusedLabelColor = Color.Gray,
+                        cursorColor = OrangePrimary,
+                        focusedTextColor = NavyBlue,
+                        unfocusedTextColor = NavyBlue,
+                        errorBorderColor = Color.Red,
+                        errorLabelColor = Color.Red
+                    )
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón de registrarse - AHORA TE LLEVA A MAIN
+        // Botón de registrarse - Habilitado solo si los datos son válidos
         Button(
             onClick = {
-                // Al hacer clic, cambia a la pantalla principal
                 mostrarPantalla.value = "main"
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
+            enabled = curp.length == 18 &&
+                    datosValidados &&
+                    email.isNotEmpty() &&
+                    password.isNotEmpty() &&
+                    password == confirmPassword,
             colors = ButtonDefaults.buttonColors(
-                containerColor = OrangePrimary
+                containerColor = OrangePrimary,
+                disabledContainerColor = Color.Gray
             )
         ) {
             Text(
@@ -380,7 +745,7 @@ fun DrawerContent(alCerrarDrawer: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Divider(color = Color.LightGray, thickness = 1.dp)
 
-        // Botón de Iniciar Sesi
+        // Botón de Iniciar Sesión
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -526,7 +891,8 @@ fun TopSection(onOpenDrawer: () -> Unit) {
                     unfocusedContainerColor = Color.White,
                     focusedContainerColor = Color.White,
                     unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = OrangePrimary
+                    focusedBorderColor = OrangePrimary,
+                    cursorColor = OrangePrimary
                 )
             )
 
@@ -637,7 +1003,14 @@ fun SearchModal(onClose: () -> Unit) {
                     value = origen,
                     onValueChange = { origen = it },
                     label = { Text("Punto de partida") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = OrangePrimary,
+                        unfocusedLabelColor = Color.Gray,
+                        cursorColor = OrangePrimary
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -647,7 +1020,14 @@ fun SearchModal(onClose: () -> Unit) {
                     value = destino,
                     onValueChange = { destino = it },
                     label = { Text("Destino") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        unfocusedBorderColor = Color.Gray,
+                        focusedLabelColor = OrangePrimary,
+                        unfocusedLabelColor = Color.Gray,
+                        cursorColor = OrangePrimary
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -655,7 +1035,10 @@ fun SearchModal(onClose: () -> Unit) {
                 // Botón de buscar
                 Button(
                     onClick = { },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OrangePrimary
+                    )
                 ) {
                     Text("Buscar")
                 }
