@@ -218,7 +218,7 @@ fun LoginScreen() {
             }
         ) {
             Text(
-                text = "¿No tienes cuenta? Regístrate.",
+                text = "¿No tienes cuenta? Regístrate,",
                 color = OrangePrimary
             )
         }
